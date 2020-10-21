@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="board">
+    
+    <resultMap type="com.spring.board.vo.BoardVo" id="boardVo">
+    	<result property="boardType" 	column="BOARD_TYPE"/>
+    	<result property="boardNum" 	column="BOARD_NUM"/>
+    	<result property="boardTitle" 	column="BOARD_TITLE"/>
+    	<result property="boardComment" column="BOARD_COMMENT"/>
+    </resultMap>
+    
+    <!-- boardType의 NAME값을 COM_CODE테이블에서 가져오기 위해 codeName 추가. -->
+    <resultMap type="com.spring.board.vo.BoardVo" id="boardVo2">
+    	<result property="boardType" 	column="BOARD_TYPE"/>
+    	<result property="boardNum" 	column="BOARD_NUM"/>
+    	<result property="boardTitle" 	column="BOARD_TITLE"/>
+    	<result property="boardComment" column="BOARD_COMMENT"/>
+    	<result property='codeName'		column="CODE_NAME"/>
+    </resultMap>
+    
+    <resultMap type="com.spring.board.vo.BoardVo" id="boardVo3">
+    	<result property="boardType" 	column="BOARD_TYPE"/>
+    	<result property="boardNum" 	column="BOARD_NUM"/>
+    	<result property="boardTitle" 	column="BOARD_TITLE"/>
+    	<result property="boardComment" column="BOARD_COMMENT"/>
+    	<result property="totalCnt"     column="TOTAL_CNT"/>
+    </resultMap>
+    
+    <select id="boardList" parameterType="com.spring.board.vo.PageVo" resultMap="boardVo3">
+    <!-- boardList -->
+        SELECT 
+		  BOARD_TYPE
+		  ,BOARD_NUM
+		  ,BOARD_TITLE
+		  ,BOARD_COMMENT
+		  ,TOTAL_CNT
+		FROM 
+		(
+		  SELECT
+		      	BOARD_TYPE
+				,BOARD_NUM
+				,BOARD_TITLE
+				,BOARD_COMMENT
+		      	,ROW_NUMBER() OVER(ORDER BY BOARD_NUM DESC) AS NUMROW
+		      	,COUNT(*) OVER() AS TOTAL_CNT
+			FROM
+				BOARD	
+		)
+		WHERE NUMROW BETWEEN (#{pageNo}-1)*10 + 1 AND (#{pageNo})*10
+    </select>
+    
+    <select id="boardTotal" parameterType="Integer" resultType="Integer">
+    <!-- boardTotal -->
+		  SELECT
+		      	COUNT(*) AS TOTAL_CNT
+			FROM
+				BOARD	
+    </select>
+    	
+    <select id="boardView" parameterType="com.spring.board.vo.BoardVo" resultMap="boardVo">
+    <!-- boardView -->
+    	SELECT
+        	BOARD_TYPE
+			,BOARD_NUM
+			,BOARD_TITLE
+			,BOARD_COMMENT
+		FROM
+			BOARD
+    	WHERE 	BOARD_TYPE = #{boardType}
+    	AND 	BOARD_NUM  = #{boardNum}
+    </select>	
+    
+    <select id="boardInsert" parameterType="com.spring.board.vo.BoardVo">
+    <!-- boardInsert -->
+        INSERT INTO 
+        BOARD
+        (BOARD_TYPE
+        ,BOARD_NUM
+        ,BOARD_TITLE
+        ,BOARD_COMMENT
+        ,CREATOR
+        ,CREATE_TIME
+        ,MODIFIER
+        ,MODIFIED_TIME
+        )
+        VALUES
+        (#{boardType}
+        ,(SELECT NVL(TO_NUMBER(MAX(BOARD_NUM)+1),1)
+	    FROM BOARD
+	    WHERE BOARD_TYPE = #{boardType})
+        ,#{boardTitle}
+        ,#{boardComment}
+        ,'SYSTEM'
+        ,TO_CHAR(SYSDATE)
+        ,'SYSTEM'
+        ,TO_CHAR(SYSDATE)
+        )
+    </select>
+    
+    <select id="boardUpdate" parameterType="com.spring.board.vo.BoardVo">
+    <!-- boardUpdate -->
+    	UPDATE BOARD
+		SET 
+	        BOARD_TITLE = #{boardTitle}
+	        ,BOARD_COMMENT = #{boardComment}
+	        ,MODIFIED_TIME = TO_CHAR(SYSDATE)
+		WHERE
+			 BOARD_TYPE = #{boardType}
+			 AND BOARD_NUM = #{boardNum}
+    </select>
+    
+    <select id="boardDelete" parameterType="com.spring.board.vo.BoardVo" >
+    	<!-- boardDelete -->
+    	DELETE FROM BOARD
+    	WHERE 
+	    	BOARD_TYPE = #{boardType}
+	    	AND BOARD_NUM = #{boardNum}
+    </select>
+    
+    <select id="boardSelectList" parameterType="map" resultMap="boardVo3">
+    <!-- boardSelectList -->
+    <!-- HashMap을 이용하여 배열을 넘길떄에는  반복문의 'collection' 값에 Map의 String 'key'값을 넣어주면 작동한다... ㅠㅠ -->
+        SELECT 
+		  BOARD_TYPE
+		  ,BOARD_NUM
+		  ,BOARD_TITLE
+		  ,BOARD_COMMENT
+		  ,TOTAL_CNT
+		FROM 
+		(
+		  SELECT
+		      	BOARD_TYPE
+				,BOARD_NUM
+				,BOARD_TITLE
+				,BOARD_COMMENT
+		      	,ROW_NUMBER() OVER(ORDER BY BOARD_NUM DESC) AS NUMROW
+		      	,COUNT(*) OVER() AS TOTAL_CNT
+			FROM
+				BOARD	
+			WHERE 
+    		BOARD_TYPE IN (<foreach collection="sArr" item="sArr" index="index" separator=",">'${sArr}'</foreach>)
+		)
+		WHERE NUMROW BETWEEN (#{pageNo}-1)*10 + 1 AND (#{pageNo})*10
+    </select>
+    
+    <select id="boardSelectCnt" parameterType="String" resultType="Integer">
+    <!-- boardSelectTotal -->
+		SELECT
+			COUNT(*) AS TOTAL_CNT
+		FROM
+			BOARD	
+		WHERE BOARD_TYPE = #{string}
+    </select>
+    
+    <select id="boardAllSelectType" resultMap="boardVo2">
+    <!-- boardAllSelectType -->
+		SELECT DISTINCT BOARD_TYPE , CODE_NAME
+		FROM
+		    BOARD B
+		LEFT JOIN COM_CODE C 
+		    ON B.BOARD_TYPE = C.CODE_ID
+		ORDER BY BOARD_TYPE
+    </select>
+    
+    
+
+    
+    
+    
+    
+    
+
+</mapper>
